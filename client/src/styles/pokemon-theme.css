@@ -1,0 +1,19 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+.chess-piece {
+  transition: transform 0.2s ease-in-out;
+}
+
+.chess-piece:hover {
+  transform: scale(1.1);
+}
+
+.selected-square {
+  background-color: rgba(255, 255, 0, 0.3) !important;
+}
+
+.valid-move {
+  background-color: rgba(0, 255, 0, 0.2) !important;
+}
