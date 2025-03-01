@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Chessboard } from 'react-chessboard';
 import { Chess } from 'chess.js';
 import GameStatus from './GameStatus';
@@ -8,13 +8,44 @@ export default function ChessGame() {
   const [game, setGame] = useState(new Chess());
   const [moveFrom, setMoveFrom] = useState('');
   const [status, setStatus] = useState('');
+  const [isThinking, setIsThinking] = useState(false);
+
+  // Fonction pour obtenir un coup aléatoire valide pour l'IA
+  const getRandomMove = () => {
+    const moves = game.moves({ verbose: true });
+    if (moves.length === 0) return null;
+    return moves[Math.floor(Math.random() * moves.length)];
+  };
+
+  // Fonction pour faire jouer l'IA
+  const makeComputerMove = useCallback(() => {
+    setIsThinking(true);
+    setTimeout(() => {
+      const move = getRandomMove();
+      if (move) {
+        const gameCopy = new Chess(game.fen());
+        gameCopy.move(move);
+        setGame(gameCopy);
+        setStatus(getGameStatus(gameCopy));
+      }
+      setIsThinking(false);
+    }, 500); // Petit délai pour simuler la "réflexion"
+  }, [game]);
+
+  // Effet pour faire jouer l'IA après chaque coup du joueur
+  useEffect(() => {
+    if (game.turn() === 'b' && !game.isGameOver()) {
+      makeComputerMove();
+    }
+  }, [game, makeComputerMove]);
 
   const makeMove = useCallback((move: any) => {
     try {
-      const result = game.move(move);
+      const gameCopy = new Chess(game.fen());
+      const result = gameCopy.move(move);
       if (result) {
-        setGame(new Chess(game.fen()));
-        setStatus(getGameStatus(game));
+        setGame(gameCopy);
+        setStatus(getGameStatus(gameCopy));
         return true;
       }
     } catch (error) {
@@ -27,10 +58,14 @@ export default function ChessGame() {
     if (game.isCheckmate()) return 'Échec et mat !';
     if (game.isDraw()) return 'Match nul !';
     if (game.isCheck()) return 'Échec !';
+    if (isThinking) return 'L\'ordinateur réfléchit...';
     return `Au tour des ${game.turn() === 'w' ? 'blancs' : 'noirs'}`;
   };
 
   const onSquareClick = (square: string) => {
+    // Ne permet pas de jouer pendant le tour de l'ordinateur
+    if (game.turn() === 'b' || isThinking) return;
+
     if (!moveFrom) {
       const piece = game.get(square);
       if (piece && piece.color === game.turn()) {
